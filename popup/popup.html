@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>YuMeew Suno 字幕匯出</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>Suno 字幕／歌詞擷取</h1>
+    <p class="subtitle">使用你目前已登入的 Suno 帳號，讀取歌曲的逐字時間軸歌詞（不會另外儲存帳密）。</p>
+  </header>
+
+  <section class="field">
+    <label for="song-url">Suno 歌曲網址（<code>/song/&lt;id&gt;</code> 格式）</label>
+    <input id="song-url" type="url" placeholder="https://suno.com/song/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+  </section>
+
+  <button id="fetch-button" class="primary-button" type="button">擷取歌詞時間軸</button>
+
+  <p id="status" class="status" role="status"></p>
+
+  <section id="result" class="result" hidden>
+    <p id="result-summary"></p>
+    <div class="actions">
+      <button id="download-srt" class="text-button" type="button">下載 SRT</button>
+      <button id="download-lrc" class="text-button" type="button">下載 LRC</button>
+      <button id="download-txt" class="text-button" type="button">下載純文字歌詞</button>
+    </div>
+    <button id="import-button" class="primary-button" type="button">匯入到 YuMeew 字幕編輯器</button>
+    <p class="hint">會寫入 subtitle-editor.html 使用的本機字幕欄位，並自動切到（或開啟）該分頁。</p>
+  </section>
+
+  <footer>
+    <p>僅在你的瀏覽器內執行，資料不會送到 YuMeew 以外的任何伺服器。</p>
+  </footer>
+
+  <script src="../lib/srt.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

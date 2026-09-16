@@ -35,17 +35,28 @@ Authorization: Bearer <token>
 
 ## 安裝方式（僅供個人使用，未上架 Chrome 線上應用程式商店）
 
-推薦用 `git clone` 裝，之後更新只要 `git pull`，不用每次到 Releases 頁面下載 zip、解壓縮、再選資料夾：
+因為沒有上架 Chrome 線上應用程式商店，沒辦法用平常「加到 Chrome」那種一鍵安裝，要用「開發人員模式」手動載入資料夾（Chrome 官方就是設計給還沒上架、正在開發中的擴充元件用的方式，操作起來比聽起來簡單）。
+
+### 第一步：把程式碼放到你的電腦上
+
+推薦用 `git clone`，之後更新只要 `git pull`，不用每次到 Releases 頁面下載 zip、解壓縮、再重新選資料夾：
 
 ```sh
 git clone https://github.com/YueyuHoshizora/suno-lyrics-bridge.git
 ```
 
-1. 打開 `chrome://extensions`
-2. 開啟右上角「開發人員模式」
-3. 點「載入未封裝項目」，選擇剛剛 clone 下來的 `suno-lyrics-bridge/` 資料夾
+不想用 git 的話，也可以到 [Releases](https://github.com/YueyuHoshizora/suno-lyrics-bridge/releases) 頁面下載最新版的 zip 並解壓縮。兩種方式最後都會得到一個 `suno-lyrics-bridge/` 資料夾（裡面要看得到 `manifest.json`），**這個資料夾之後不要刪除或搬移**——Chrome 是直接讀取這個資料夾內容執行的，不是把它「安裝」進 Chrome 自己的地方，資料夾不見了擴充元件就會跟著失效。
 
-不想用 git 的話，也可以直接到 [Releases](https://github.com/YueyuHoshizora/suno-lyrics-bridge/releases) 頁面下載最新版的 zip，解壓縮後一樣用「載入未封裝項目」選那個資料夾即可，只是之後更新要重複下載/解壓縮的步驟。
+### 第二步：在 Chrome 開啟開發人員模式並載入
+
+1. 網址列輸入 `chrome://extensions` 並按 Enter（或用滑鼠：右上角「⋮」選單 → 更多工具 → 擴充功能）
+2. 打開頁面右上角「開發人員模式」的切換開關（打開後頁面上會多出「載入未封裝項目」「打包擴充功能」「更新」幾個按鈕）
+3. 點「載入未封裝項目」，在跳出的選檔視窗裡選擇第一步得到的 `suno-lyrics-bridge/` 資料夾本身（不是資料夾裡面的某個檔案），按「選取資料夾」
+4. 擴充功能清單會多出一張「YuMeew Suno 字幕匯出」的卡片，代表安裝成功；如果 Chrome 顯示紅字錯誤，通常是選錯資料夾（例如選到外層還沒解壓縮，或選到 `popup/` 這種子資料夾），重新選一次最外層那個資料夾即可
+
+### 第三步（建議）：把圖示釘到工具列
+
+Chrome 預設會把新裝的擴充元件收在網址列右邊的「拼圖」圖示（擴充功能選單）裡，不會直接顯示。建議點一下拼圖圖示，找到「YuMeew Suno 字幕匯出」，點旁邊的圖釘，把它釘在工具列上，之後才能一鍵點開 popup，不用每次都點進拼圖選單找。
 
 ## 使用方式
 

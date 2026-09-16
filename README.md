@@ -52,6 +52,7 @@ Authorization: Bearer <token>
 - 讀取 `__session` cookie 直接當 Bearer token 送出，這是社群已驗證可行的做法，但屬於未公開行為，Suno 未來調整登入機制（例如改回需要走完整的 Clerk token 換發流程）時可能需要更新 `popup/popup.js` 的 `getSunoSessionToken()`／`fetchAlignedWords()`。
 - 不是每首歌都一定有逐字對齊資料（例如非 Suno 生成、或尚未產生對齊資料的歌曲），這種情況會顯示錯誤訊息而不是拿到殘缺資料。
 - 分句規則（`lib/srt.js` 的 `groupWordsIntoCues`）是依停頓時間／字數／秒數做的簡單啟發式分組，不是語意斷句，需要的話可以之後再調。
+- 會自動濾掉 `[Chorus]`／`(Verse 1)` 這類段落標記（`stripBracketedAnnotations`），不管它是單一個 token 還是被拆成好幾個 token（例如 `"(Verse"` + `"2)"`），下載的字幕/歌詞都不會出現這些標籤文字。
 
 ## 檔案結構
 

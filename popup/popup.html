@@ -12,13 +12,16 @@
   </header>
 
   <section class="field">
-    <label for="song-url">Suno 歌曲網址（<code>/song/&lt;id&gt;</code> 格式）</label>
+    <label for="song-url">Suno 網址（分享連結或 <code>/song/&lt;id&gt;</code> 都可以，擷取歌詞需要 <code>/song/&lt;id&gt;</code>）</label>
     <input id="song-url" type="url" placeholder="https://suno.com/song/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
   </section>
 
   <button id="fetch-button" class="primary-button" type="button">擷取歌詞時間軸</button>
+  <button id="apply-audio-button" class="text-button full-width" type="button">下載音樂並套用到主畫面</button>
+  <p class="hint">會在 YuMeew 開啟（或切到）suno-tool.html 分頁，用網站原本的「取得音樂」＋「套用到主畫面」流程自動跑完，音樂會存進主畫面可用的本機資料庫。跟上面的字幕擷取互不影響，兩個都做的話字幕編輯器重新整理後會同時看到音樂與字幕。</p>
 
   <p id="status" class="status" role="status"></p>
+  <p id="audio-status" class="status" role="status"></p>
 
   <section id="result" class="result" hidden>
     <p id="result-summary"></p>

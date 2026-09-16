@@ -63,3 +63,6 @@ button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid v
 
 footer { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
 footer p { margin: 0; font-size: 11px; color: var(--muted); }
+
+.full-width { width: 100%; margin-top: 8px; }
+#audio-status { margin-top: 4px; }

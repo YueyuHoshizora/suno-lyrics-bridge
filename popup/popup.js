@@ -2,6 +2,7 @@ const $ = id => document.getElementById(id);
 
 const YUMEEW_ORIGIN = "https://ezmusic.yustellar.idv.tw";
 const SUBTITLE_EDITOR_URL = `${YUMEEW_ORIGIN}/subtitle-editor.html`;
+const SUNO_TOOL_URL = `${YUMEEW_ORIGIN}/suno-tool.html`;
 
 let lastResult = null; // { srtText, lrcText, txtText, fileBase }
 
@@ -27,10 +28,21 @@ function parseSongId(rawUrl) {
   }
 }
 
+function isSunoUrl(rawUrl) {
+  try {
+    return /(^|\.)suno\.com$/i.test(new URL(rawUrl).hostname);
+  } catch {
+    return false;
+  }
+}
+
 async function prefillFromActiveTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.url && parseSongId(tab.url)) $("song-url").value = tab.url;
+    // 這裡放寬成只要是 suno.com 網址就預填（含 /s/ 分享短連結），
+    // 因為「下載音樂並套用到主畫面」跟網站的 suno-tool.js 一樣兩種格式都支援，
+    // 只有「擷取歌詞時間軸」才需要真正的 /song/<id> 網址。
+    if (tab?.url && isSunoUrl(tab.url)) $("song-url").value = tab.url;
   } catch {
     // 沒有分頁權限時安靜略過，使用者仍可手動貼網址。
   }
@@ -132,21 +144,110 @@ function injectSubtitleIntoIndexedDb(srtText, filename) {
   });
 }
 
-async function findOrCreateEditorTab() {
-  const existing = await chrome.tabs.query({ url: `${SUBTITLE_EDITOR_URL}*` });
-  if (existing.length) return existing[0];
-
-  const created = await chrome.tabs.create({ url: SUBTITLE_EDITOR_URL, active: false });
+async function waitForTabComplete(tabId) {
   await new Promise(resolve => {
-    function onUpdated(tabId, info) {
-      if (tabId === created.id && info.status === "complete") {
+    function onUpdated(id, info) {
+      if (id === tabId && info.status === "complete") {
         chrome.tabs.onUpdated.removeListener(onUpdated);
         resolve();
       }
     }
     chrome.tabs.onUpdated.addListener(onUpdated);
   });
+}
+
+async function findOrCreateEditorTab() {
+  const existing = await chrome.tabs.query({ url: `${SUBTITLE_EDITOR_URL}*` });
+  if (existing.length) return existing[0];
+
+  const created = await chrome.tabs.create({ url: SUBTITLE_EDITOR_URL, active: false });
+  await waitForTabComplete(created.id);
   return created;
+}
+
+// 開啟（或重用）一個 suno-tool.html 分頁並導到指定的 Suno 網址，讓後續的 executeScript
+// 直接操作網站原本的表單/按鈕，重用網站上已經寫好、測試過的下載＋解密＋轉檔＋套用邏輯，
+// 不在擴充元件這邊重做一份（也避免 model-proxy 的 Origin allowlist 擋掉擴充元件直接呼叫）。
+async function openOrFocusSunoToolTab(sunoUrl) {
+  const targetUrl = `${SUNO_TOOL_URL}?q=${encodeURIComponent(sunoUrl)}`;
+  const [existing] = await chrome.tabs.query({ url: `${SUNO_TOOL_URL}*` });
+  if (existing) {
+    await chrome.tabs.update(existing.id, { url: targetUrl });
+    await waitForTabComplete(existing.id);
+    return existing;
+  }
+  const created = await chrome.tabs.create({ url: targetUrl, active: false });
+  await waitForTabComplete(created.id);
+  return created;
+}
+
+// 這個函式會被注入到 suno-tool.html 分頁裡執行：等同幫使用者按「取得音樂」，
+// 等網站自己把音樂下載、解密、轉成 WAV 完成後，再幫忙按「套用到主畫面」。
+// 注意：這個函式回傳的 Promise 絕對不 reject —— chrome.scripting.executeScript
+// 對「注入函式回傳的 Promise 被 reject」這件事的處理在不同版本不一致，
+// 所以一律用 { ok, message } 這種回傳值來傳錯誤，呼叫端只看回傳值不看例外。
+function driveSunoToolApply() {
+  return new Promise(resolve => {
+    const form = document.getElementById("suno-form");
+    if (!form) { resolve({ ok: false, message: "找不到 Suno 工具頁面元素，頁面可能還沒載入完成，請稍後再試一次。" }); return; }
+    if (typeof form.requestSubmit === "function") form.requestSubmit();
+    else document.getElementById("suno-fetch")?.click();
+
+    const deadline = Date.now() + 180000;
+    (function poll() {
+      const badge = document.getElementById("suno-status-badge");
+      const errorEl = document.getElementById("suno-error");
+      if (errorEl && !errorEl.hidden && errorEl.textContent) {
+        resolve({ ok: false, message: errorEl.textContent });
+        return;
+      }
+      if (badge && badge.classList.contains("ready")) {
+        document.getElementById("suno-apply")?.click();
+        resolve({ ok: true });
+        return;
+      }
+      if (Date.now() > deadline) {
+        resolve({ ok: false, message: "等待音樂處理逾時，請切到 YuMeew 分頁手動操作。" });
+        return;
+      }
+      setTimeout(poll, 400);
+    })();
+  });
+}
+
+async function handleApplyAudio() {
+  const rawUrl = $("song-url").value.trim();
+  const audioStatus = $("audio-status");
+  audioStatus.className = "status";
+  if (!rawUrl) {
+    audioStatus.textContent = "請先貼上 Suno 網址。";
+    audioStatus.className = "status error";
+    return;
+  }
+
+  $("apply-audio-button").disabled = true;
+  audioStatus.textContent = "正在前往 YuMeew 下載音樂…";
+  try {
+    const tab = await openOrFocusSunoToolTab(rawUrl);
+    const [injection] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: driveSunoToolApply,
+    });
+    await chrome.tabs.update(tab.id, { active: true });
+    await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
+    if (injection?.result?.ok) {
+      audioStatus.textContent = "已在 YuMeew 分頁套用音樂到主畫面。";
+      audioStatus.className = "status success";
+    } else {
+      audioStatus.textContent = injection?.result?.message || "無法自動套用音樂，請切到 YuMeew 分頁手動操作。";
+      audioStatus.className = "status error";
+    }
+  } catch (error) {
+    audioStatus.textContent = error?.message || "無法自動套用音樂，請切到 YuMeew 分頁手動操作。";
+    audioStatus.className = "status error";
+  } finally {
+    $("apply-audio-button").disabled = false;
+  }
 }
 
 async function handleImport() {
@@ -173,5 +274,6 @@ $("download-srt").addEventListener("click", () => lastResult && downloadText(las
 $("download-lrc").addEventListener("click", () => lastResult && downloadText(lastResult.lrcText, `${lastResult.fileBase}.lrc`, "text/plain"));
 $("download-txt").addEventListener("click", () => lastResult && downloadText(lastResult.txtText, `${lastResult.fileBase}.txt`, "text/plain"));
 $("import-button").addEventListener("click", handleImport);
+$("apply-audio-button").addEventListener("click", handleApplyAudio);
 
 prefillFromActiveTab();

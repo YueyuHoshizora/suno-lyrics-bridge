@@ -181,37 +181,39 @@ async function openOrFocusSunoToolTab(sunoUrl) {
   return created;
 }
 
-// 這個函式會被注入到 suno-tool.html 分頁裡執行：等同幫使用者按「取得音樂」，
-// 等網站自己把音樂下載、解密、轉成 WAV 完成後，再幫忙按「套用到主畫面」。
-// 注意：這個函式回傳的 Promise 絕對不 reject —— chrome.scripting.executeScript
-// 對「注入函式回傳的 Promise 被 reject」這件事的處理在不同版本不一致，
-// 所以一律用 { ok, message } 這種回傳值來傳錯誤，呼叫端只看回傳值不看例外。
-function driveSunoToolApply() {
+// suno-tool.html 現在自己會處理 ?q=<url>：偵測到就直接跑完「取得音樂」＋
+// 「套用到主畫面」，成功後會導到 index.html。所以這裡不用再模擬點擊按鈕，
+// 只要負責「開那個分頁」跟「知道它到底成功還是失敗」兩件事就好：
+// - 成功：分頁的網址會離開 suno-tool.html（導向 index.html），用 chrome.tabs.onUpdated 就能偵測到。
+// - 失敗：分頁會留在 suno-tool.html 並顯示 #suno-error，這裡用一次性注入去讀那個錯誤訊息。
+function waitForSunoErrorMessage() {
   return new Promise(resolve => {
-    const form = document.getElementById("suno-form");
-    if (!form) { resolve({ ok: false, message: "找不到 Suno 工具頁面元素，頁面可能還沒載入完成，請稍後再試一次。" }); return; }
-    if (typeof form.requestSubmit === "function") form.requestSubmit();
-    else document.getElementById("suno-fetch")?.click();
-
     const deadline = Date.now() + 180000;
     (function poll() {
-      const badge = document.getElementById("suno-status-badge");
+      if (!location.pathname.endsWith("/suno-tool.html")) { resolve(null); return; } // 已經導頁離開，視為成功
       const errorEl = document.getElementById("suno-error");
-      if (errorEl && !errorEl.hidden && errorEl.textContent) {
-        resolve({ ok: false, message: errorEl.textContent });
-        return;
-      }
-      if (badge && badge.classList.contains("ready")) {
-        document.getElementById("suno-apply")?.click();
-        resolve({ ok: true });
-        return;
-      }
-      if (Date.now() > deadline) {
-        resolve({ ok: false, message: "等待音樂處理逾時，請切到 YuMeew 分頁手動操作。" });
-        return;
-      }
+      if (errorEl && !errorEl.hidden && errorEl.textContent) { resolve(errorEl.textContent); return; }
+      if (Date.now() > deadline) { resolve(null); return; }
       setTimeout(poll, 400);
     })();
+  });
+}
+
+function waitForTabToLeaveSunoTool(tabId, timeoutMs = 180000) {
+  return new Promise(resolve => {
+    let settled = false;
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    function finish(left) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      resolve(left);
+    }
+    function onUpdated(id, info) {
+      if (id === tabId && info.url && !info.url.includes("suno-tool.html")) finish(true);
+    }
+    chrome.tabs.onUpdated.addListener(onUpdated);
   });
 }
 
@@ -229,17 +231,24 @@ async function handleApplyAudio() {
   audioStatus.textContent = "正在前往 YuMeew 下載音樂…";
   try {
     const tab = await openOrFocusSunoToolTab(rawUrl);
-    const [injection] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: driveSunoToolApply,
-    });
     await chrome.tabs.update(tab.id, { active: true });
     await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
-    if (injection?.result?.ok) {
+
+    // race，不是 all：哪個先有結果就用哪個，不然分頁一旦導頁離開，
+    // 還在等的 executeScript 那個 promise 可能永遠不會結束。
+    const outcome = await Promise.race([
+      waitForTabToLeaveSunoTool(tab.id).then(left => (left ? { ok: true } : { ok: false, message: "等待音樂處理逾時，請切到 YuMeew 分頁查看狀況。" })),
+      chrome.scripting.executeScript({ target: { tabId: tab.id }, func: waitForSunoErrorMessage })
+        .then(([injection]) => (injection?.result ? { ok: false, message: injection.result } : null))
+        .catch(() => null)
+        .then(result => result || new Promise(() => {})), // null 代表這條路徑沒有結論，讓另一條 race 贏
+    ]);
+
+    if (outcome.ok) {
       audioStatus.textContent = "已在 YuMeew 分頁套用音樂到主畫面。";
       audioStatus.className = "status success";
     } else {
-      audioStatus.textContent = injection?.result?.message || "無法自動套用音樂，請切到 YuMeew 分頁手動操作。";
+      audioStatus.textContent = outcome.message;
       audioStatus.className = "status error";
     }
   } catch (error) {

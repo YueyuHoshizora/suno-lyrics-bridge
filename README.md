@@ -20,10 +20,12 @@ Authorization: Bearer <token>
 - 下載 `.srt`／`.lrc`／純文字歌詞
 - 一鍵「匯入到 YuMeew 字幕編輯器」：會找到（或開啟）`subtitle-editor.html` 分頁，把字幕直接寫進該頁使用的本機 IndexedDB（跟 `suno-tool.html` 的「套用到主畫面」用同一個資料庫、只是寫入 `subtitle` 這個欄位而不是 `audio`），然後重新整理該分頁。
 
-另外還有「下載音樂並套用到主畫面」：這個**不是**擴充元件自己重做一套下載/解密邏輯，而是開啟（或切到）YuMeew 的 `suno-tool.html?q=<網址>` 分頁，用 `chrome.scripting.executeScript` 幫使用者按下網站原本的「取得音樂」，等網站自己完成下載、解密、轉 WAV 之後，再幫忙按「套用到主畫面」。這樣做是刻意的：
+另外還有「下載音樂並套用到主畫面」：這個**不是**擴充元件自己重做一套下載/解密邏輯，而是開啟（或切到）YuMeew 的 `suno-tool.html?q=<網址>` 分頁。從 v1.0.1 開始，`suno-tool.html` 自己偵測到 `?q=` 就會自動跑完「取得音樂」＋「套用到主畫面」並導向 `index.html`，擴充元件只需要負責開那個分頁、然後用 `chrome.tabs.onUpdated` 判斷它有沒有離開 `suno-tool.html`（離開＝成功）；失敗的話分頁會停在原地並顯示 `#suno-error`，擴充元件用一次性的 `chrome.scripting.executeScript` 讀出那段錯誤文字顯示給你看。這樣做是刻意的：
 
 - `model-proxy` Worker 的 `/suno/resolve` 端點有 Origin allowlist，只接受 `https://ezmusic.yustellar.idv.tw` 發出的請求，擴充元件（`chrome-extension://...` origin）直接呼叫會被 403 擋掉；讓請求真的從 YuMeew 網站分頁發出就完全不用碰這個限制。
-- 音樂的下載／AES-GCM+AES-CTR 解密／WAV 轉檔邏輯已經在 `js/suno-source.js`／`converter-core.js` 寫好且有測試，重新在擴充元件裡實作一份既多工又容易跟網站那邊的邏輯兜不起來，不如直接「幫使用者按按鈕」。
+- 音樂的下載／AES-GCM+AES-CTR 解密／WAV 轉檔邏輯已經在 `js/suno-source.js`／`converter-core.js` 寫好且有測試，重新在擴充元件裡實作一份既多工又容易跟網站那邊的邏輯兜不起來，不如讓網站自己處理，擴充元件只負責「開分頁＋等結果」。
+
+（v1.0.0 是用模擬點擊按鈕的方式驅動，v1.0.1 改成上面這個更簡單可靠的做法，因為網站本身已經支援 `?q=` 自動執行。）
 
 這個功能跟字幕擷取互不影響（分開寫進 IndexedDB 的 `audio`／`subtitle` 兩個欄位），兩個都用的話，字幕編輯器分頁重新整理後會同時看到音樂與字幕。
 

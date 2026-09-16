@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YuMeew Suno 字幕匯出",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "在 Suno 歌曲頁面擷取逐字時間軸歌詞，下載 SRT/LRC/純文字歌詞，或一鍵匯入 YuMeew 字幕編輯器。僅使用你自己已登入的 Suno session，不會另外儲存帳號密碼。",
   "action": {
     "default_popup": "popup/popup.html",
@@ -18,7 +18,11 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": ["cookies", "tabs", "scripting"],
+  "permissions": [
+    "cookies",
+    "tabs",
+    "scripting"
+  ],
   "host_permissions": [
     "https://suno.com/*",
     "https://studio-api.prod.suno.com/*",

@@ -35,9 +35,17 @@ Authorization: Bearer <token>
 
 ## 安裝方式（僅供個人使用，未上架 Chrome 線上應用程式商店）
 
+推薦用 `git clone` 裝，之後更新只要 `git pull`，不用每次到 Releases 頁面下載 zip、解壓縮、再選資料夾：
+
+```sh
+git clone https://github.com/YueyuHoshizora/suno-lyrics-bridge.git
+```
+
 1. 打開 `chrome://extensions`
 2. 開啟右上角「開發人員模式」
-3. 點「載入未封裝項目」，選擇這個資料夾（`suno-lyrics-bridge/`）
+3. 點「載入未封裝項目」，選擇剛剛 clone 下來的 `suno-lyrics-bridge/` 資料夾
+
+不想用 git 的話，也可以直接到 [Releases](https://github.com/YueyuHoshizora/suno-lyrics-bridge/releases) 頁面下載最新版的 zip，解壓縮後一樣用「載入未封裝項目」選那個資料夾即可，只是之後更新要重複下載/解壓縮的步驟。
 
 ## 使用方式
 
@@ -50,7 +58,20 @@ Authorization: Bearer <token>
 
 Chrome 對「開發人員模式載入（unpacked）」的擴充元件沒有提供真正的自動更新機制——這不是本專案的限制，是 Chrome 本身的設計：自動更新只對「上架 Chrome 線上應用程式商店」或「企業政策強制安裝＋自架簽章更新伺服器」這兩種情境開放，一般個人自用的 unpacked 擴充元件不在其中，擴充元件本身在瀏覽器沙盒裡也沒有 API 能自己改寫已載入的本機資料夾。
 
-退而求其次做的是：每次打開 popup 時，會去查這個 repo 的 [GitHub Releases](https://github.com/YueyuHoshizora/suno-lyrics-bridge/releases) 有沒有比目前 `manifest.json` 版本新的 Release，有的話會在 popup 最上面顯示一條提醒＋連結，點過去下載新版 zip 後，跟第一次安裝一樣解壓縮、回到 `chrome://extensions` 重新「載入未封裝項目」（或直接對著舊資料夾按重新整理圖示，如果你是解壓縮到同一個資料夾覆蓋的話）即可。這一步同樣不會自動下載或自動覆蓋檔案，只是幫你省下「要不要去看看有沒有新版」這個檢查動作。
+退而求其次做的是：每次打開 popup 時，會去查這個 repo 的 [GitHub Releases](https://github.com/YueyuHoshizora/suno-lyrics-bridge/releases) 有沒有比目前 `manifest.json` 版本新的 Release，有的話會在 popup 最上面顯示一條提醒＋連結。看到提醒之後，實際更新檔案的動作依你當初怎麼安裝而不同：
+
+**如果是用 `git clone` 裝的（推薦）**：直接在那個資料夾裡 `git pull`，比下載 zip 快很多，也不用每次重新解壓縮：
+
+```sh
+cd suno-lyrics-bridge   # 換成你當初 clone 的資料夾路徑
+git pull
+```
+
+`git pull` 完之後，回到 `chrome://extensions`，找到這個擴充元件，點卡片上的重新整理圖示（圓形箭頭）讓 Chrome 重新讀取資料夾內容即可，不用重新走一次「載入未封裝項目」。
+
+**如果是下載 zip 裝的**：點提醒裡的連結，下載新版 zip、解壓縮覆蓋原本的資料夾，一樣回 `chrome://extensions` 按重新整理圖示。
+
+不管哪種方式，都不會自動下載或自動覆蓋檔案，也都需要手動按一下重新整理圖示——Chrome 才會真的載入新版程式碼；只是幫你省下「要不要去看看有沒有新版」這個檢查動作。
 
 因為這個更新提示要打 `https://api.github.com/repos/.../releases/latest`（未登入的公開 API），repo 從 private 改成 public 了——內容本來就不含任何帳密或機密設定，公開沒有風險。
 

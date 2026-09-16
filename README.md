@@ -53,6 +53,7 @@ Authorization: Bearer <token>
 - 不是每首歌都一定有逐字對齊資料（例如非 Suno 生成、或尚未產生對齊資料的歌曲），這種情況會顯示錯誤訊息而不是拿到殘缺資料。
 - 分句規則（`lib/srt.js` 的 `groupWordsIntoCues`）是依停頓時間／字數／秒數做的簡單啟發式分組，不是語意斷句，需要的話可以之後再調。
 - 會自動濾掉 `[Chorus]`／`(Verse 1)` 這類段落標記（`stripBracketedAnnotations`），不管它是單一個 token 還是被拆成好幾個 token（例如 `"(Verse"` + `"2)"`），下載的字幕/歌詞都不會出現這些標籤文字。
+- 字幕分段優先採用 Suno API 回應裡「歌詞本身的分段」（`data.aligned_lyrics`，如果有的話），比自己用停頓時間/字數猜的分段更準；猜不到這個欄位或內容不合理時，會自動退回逐字分組（`groupWordsIntoCues`）。**這個 `aligned_lyrics` 欄位存在與否、確切格式沒有實際打過 API 驗證過**（沙盒環境連不到 `studio-api.prod.suno.com`），如果你實際用起來發現字幕一直是退回逐字分組的效果，代表要照真正的回應格式調整 `lib/srt.js` 的 `cuesFromAlignedLyricsLines()`。
 
 ## 檔案結構
 

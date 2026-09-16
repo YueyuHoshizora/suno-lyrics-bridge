@@ -53,7 +53,7 @@ async function getSunoSessionToken() {
   return cookie?.value || null;
 }
 
-async function fetchAlignedWords(songId, token) {
+async function fetchAlignedLyricsData(songId, token) {
   const response = await fetch(`https://studio-api.prod.suno.com/api/gen/${songId}/aligned_lyrics/v2/`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -64,7 +64,7 @@ async function fetchAlignedWords(songId, token) {
   if (!response.ok) throw Error(`Suno API 回應錯誤（HTTP ${response.status}）。`);
   const data = await response.json().catch(() => null);
   if (!data?.aligned_words?.length) throw Error("這首歌沒有可用的逐字時間軸資料（可能尚未產生對齊資料，或不是 Suno 生成的歌曲）。");
-  return data.aligned_words;
+  return data;
 }
 
 function formatDuration(seconds) {
@@ -100,8 +100,9 @@ async function handleFetch() {
     const token = await getSunoSessionToken();
     if (!token) throw Error("找不到 Suno 登入憑證，請先在 Chrome 登入 suno.com，並保持分頁開著再試一次。");
 
-    const alignedWords = await fetchAlignedWords(songId, token);
-    const cues = SrtLib.groupWordsIntoCues(alignedWords);
+    const data = await fetchAlignedLyricsData(songId, token);
+    // 字幕優先用歌詞本身的分段（data.aligned_lyrics），沒有才退回依停頓/字數猜的逐字分組。
+    const cues = SrtLib.buildCues(data);
     if (!cues.length) throw Error("解析後沒有任何可用的句子，可能是資料格式有變動。");
 
     const fileBase = `suno-${songId.slice(0, 8)}`;

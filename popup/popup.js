@@ -286,4 +286,35 @@ $("download-txt").addEventListener("click", () => lastResult && downloadText(las
 $("import-button").addEventListener("click", handleImport);
 $("apply-audio-button").addEventListener("click", handleApplyAudio);
 
+// Chrome 對「開發人員模式載入」的擴充元件沒有真正的自動更新機制，這裡只能做到
+// 「開啟 popup 時順便問一下 GitHub 有沒有新版 Release，有的話提醒你手動更新」。
+function compareSemver(a, b) {
+  const pa = a.replace(/^v/i, "").split(".").map(Number);
+  const pb = b.replace(/^v/i, "").split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] || 0) - (pb[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+async function checkForUpdate() {
+  try {
+    const currentVersion = chrome.runtime.getManifest().version;
+    const response = await fetch("https://api.github.com/repos/YueyuHoshizora/suno-lyrics-bridge/releases/latest");
+    if (!response.ok) return; // 沒有 Release、被限流等狀況就安靜略過，不影響其他功能
+    const release = await response.json();
+    const latestVersion = String(release?.tag_name || "").replace(/^v/i, "");
+    if (!latestVersion || compareSemver(latestVersion, currentVersion) <= 0) return;
+
+    const link = $("update-link");
+    link.textContent = `${release.tag_name}（目前是 v${currentVersion}）`;
+    link.href = release.html_url || "https://github.com/YueyuHoshizora/suno-lyrics-bridge/releases";
+    $("update-banner").hidden = false;
+  } catch {
+    // 離線、GitHub 打不到之類的狀況，安靜略過即可，不用打擾使用者。
+  }
+}
+
 prefillFromActiveTab();
+checkForUpdate();

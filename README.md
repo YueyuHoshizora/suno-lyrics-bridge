@@ -46,6 +46,14 @@ Authorization: Bearer <token>
 3. 點擴充元件圖示，確認網址已自動帶入，按「擷取歌詞時間軸」
 4. 下載檔案，或按「匯入到 YuMeew 字幕編輯器」直接送進字幕編輯器
 
+## 關於自動更新
+
+Chrome 對「開發人員模式載入（unpacked）」的擴充元件沒有提供真正的自動更新機制——這不是本專案的限制，是 Chrome 本身的設計：自動更新只對「上架 Chrome 線上應用程式商店」或「企業政策強制安裝＋自架簽章更新伺服器」這兩種情境開放，一般個人自用的 unpacked 擴充元件不在其中，擴充元件本身在瀏覽器沙盒裡也沒有 API 能自己改寫已載入的本機資料夾。
+
+退而求其次做的是：每次打開 popup 時，會去查這個 repo 的 [GitHub Releases](https://github.com/YueyuHoshizora/suno-lyrics-bridge/releases) 有沒有比目前 `manifest.json` 版本新的 Release，有的話會在 popup 最上面顯示一條提醒＋連結，點過去下載新版 zip 後，跟第一次安裝一樣解壓縮、回到 `chrome://extensions` 重新「載入未封裝項目」（或直接對著舊資料夾按重新整理圖示，如果你是解壓縮到同一個資料夾覆蓋的話）即可。這一步同樣不會自動下載或自動覆蓋檔案，只是幫你省下「要不要去看看有沒有新版」這個檢查動作。
+
+因為這個更新提示要打 `https://api.github.com/repos/.../releases/latest`（未登入的公開 API），repo 從 private 改成 public 了——內容本來就不含任何帳密或機密設定，公開沒有風險。
+
 ## 已知限制
 
 - 只支援 `/song/<uuid>` 格式的網址，不支援 `/s/<shareCode>` 分享短連結（Suno 內部 API 要的是實際歌曲 id）。

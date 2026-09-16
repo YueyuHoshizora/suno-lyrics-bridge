@@ -66,3 +66,14 @@ footer p { margin: 0; font-size: 11px; color: var(--muted); }
 
 .full-width { width: 100%; margin-top: 8px; }
 #audio-status { margin-top: 4px; }
+
+.update-banner {
+  background: rgba(124, 92, 240, 0.16);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.update-banner[hidden] { display: none; }
+.update-banner a { color: var(--primary); font-weight: 600; text-decoration: underline; }

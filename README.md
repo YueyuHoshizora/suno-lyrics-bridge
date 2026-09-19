@@ -1,6 +1,6 @@
 # suno-lyrics-bridge
 
-個人用 Chrome 擴充元件（Manifest V3）：在 Suno 歌曲頁面擷取官方的逐字時間軸歌詞資料，下載成 SRT／LRC／純文字歌詞，或一鍵匯入 [YuMeew Music Studio](https://ezmusic.yustellar.idv.tw) 的字幕編輯器。
+個人用 Chrome 擴充元件（Manifest V3）：在 Suno 歌曲頁面擷取官方的逐字時間軸歌詞資料，下載成 SRT／LRC／純文字歌詞，或一鍵匯入 [YuMeew Music Studio](https://the-music.app) 的字幕編輯器。
 
 這是 [YuMeewMusic](https://github.com/YueyuHoshizora/YuMeewMusic) 專案的週邊工具，獨立成一個 repo 是因為它是瀏覽器擴充元件，部署與發布方式（Chrome 載入 unpacked extension）跟主站/Workers 完全不同。
 
@@ -22,7 +22,7 @@ Authorization: Bearer <token>
 
 另外還有「下載音樂並套用到主畫面」：這個**不是**擴充元件自己重做一套下載/解密邏輯，而是開啟（或切到）YuMeew 的 `suno-tool.html?q=<網址>` 分頁。從 v1.0.1 開始，`suno-tool.html` 自己偵測到 `?q=` 就會自動跑完「取得音樂」＋「套用到主畫面」並導向 `index.html`，擴充元件只需要負責開那個分頁、然後用 `chrome.tabs.onUpdated` 判斷它有沒有離開 `suno-tool.html`（離開＝成功）；失敗的話分頁會停在原地並顯示 `#suno-error`，擴充元件用一次性的 `chrome.scripting.executeScript` 讀出那段錯誤文字顯示給你看。這樣做是刻意的：
 
-- `model-proxy` Worker 的 `/suno/resolve` 端點有 Origin allowlist，只接受 `https://ezmusic.yustellar.idv.tw` 發出的請求，擴充元件（`chrome-extension://...` origin）直接呼叫會被 403 擋掉；讓請求真的從 YuMeew 網站分頁發出就完全不用碰這個限制。
+- `model-proxy` Worker 的 `/suno/resolve` 端點有 Origin allowlist，只接受 `https://the-music.app` 發出的請求，擴充元件（`chrome-extension://...` origin）直接呼叫會被 403 擋掉；讓請求真的從 YuMeew 網站分頁發出就完全不用碰這個限制。
 - 音樂的下載／AES-GCM+AES-CTR 解密／WAV 轉檔邏輯已經在 `js/suno-source.js`／`converter-core.js` 寫好且有測試，重新在擴充元件裡實作一份既多工又容易跟網站那邊的邏輯兜不起來，不如讓網站自己處理，擴充元件只負責「開分頁＋等結果」。
 
 （v1.0.0 是用模擬點擊按鈕的方式驅動，v1.0.1 改成上面這個更簡單可靠的做法，因為網站本身已經支援 `?q=` 自動執行。）
@@ -98,7 +98,7 @@ git pull
 ## 檔案結構
 
 ```
-manifest.json       # MV3 設定，宣告 suno.com / studio-api.prod.suno.com / ezmusic.yustellar.idv.tw 的 host permission
+manifest.json       # MV3 設定，宣告 suno.com / studio-api.prod.suno.com / the-music.app 的 host permission
 popup/popup.html     # 擴充元件彈出視窗
 popup/popup.css
 popup/popup.js       # 主要邏輯：讀 cookie、打 API、轉檔、下載、匯入 YuMeew

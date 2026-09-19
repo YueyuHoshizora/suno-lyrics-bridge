@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 
-const YUMEEW_ORIGIN = "https://ezmusic.yustellar.idv.tw";
+const YUMEEW_ORIGIN = "https://the-music.app";
 const SUBTITLE_EDITOR_URL = `${YUMEEW_ORIGIN}/subtitle-editor.html`;
 const SUNO_TOOL_URL = `${YUMEEW_ORIGIN}/suno-tool.html`;
 

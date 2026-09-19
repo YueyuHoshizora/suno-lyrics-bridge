@@ -26,6 +26,6 @@
   "host_permissions": [
     "https://suno.com/*",
     "https://studio-api.prod.suno.com/*",
-    "https://ezmusic.yustellar.idv.tw/*"
+    "https://the-music.app/*"
   ]
 }
